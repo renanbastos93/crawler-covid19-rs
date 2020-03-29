@@ -29,7 +29,7 @@ var (
 	rgxGetJSON     = regexp.MustCompile(`\{.*\}`)
 	rgxLables      = regexp.MustCompile(`\{labels:.*\],`)
 	rgxValues      = regexp.MustCompile(`\[[\d\,]+\]`)
-	rgxCities      = regexp.MustCompile(`\[[\wÀ-ú\"\s\,\]\']+,d`)
+	rgxCities      = regexp.MustCompile(`\[[\p{L}\"\s\,\]\']+,d`)
 )
 
 func getCityValue(body string) ListCityValue {
@@ -61,8 +61,8 @@ func getCityValue(body string) ListCityValue {
 		for i := 0; i < len(splitVals); i++ {
 			splitCity[i] = strings.Replace(splitCity[i], "\"", "", -1)
 			list.data = append(list.data, cityValue{
-				City:  splitCity[i],
-				Value: splitVals[i],
+				City:  strings.Trim(splitCity[i], " "),
+				Value: strings.Trim(splitVals[i], " "),
 			})
 		}
 	}
