@@ -4,7 +4,7 @@ GOBIN ?= $(GOPATH)/bin
 GOSEC ?= $(GOBIN)/gosec
 GOLINT ?= $(GOBIN)/golint
 
-all: format lint sec
+all: format lint sec test
 
 sec:
 	$(GOSEC) ./...
@@ -14,3 +14,6 @@ lint:
 
 format:
 	$(GO)fmt -w .	
+
+test:
+	$(GO) test -coverprofile "coverage.html" .
