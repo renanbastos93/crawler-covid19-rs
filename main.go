@@ -6,19 +6,23 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gocarina/gocsv"
 )
 
-type cityValue struct {
+// CityValue ...
+type CityValue struct {
 	City  string `csv:"city"`
-	Value string `csv:"value"`
+	Value uint64 `csv:"value"`
 }
 
 // ListCityValue ...
 type ListCityValue struct {
-	data []cityValue
+	data  []CityValue
+	total uint64
 }
 
 // Exported ...
@@ -32,15 +36,8 @@ var (
 	rgxCities      = regexp.MustCompile(`\[[\p{L}\"\s\,\]\']+,d`)
 )
 
-func getCityValue(body string) ListCityValue {
-	sliceGraph := rgxGraphCities.FindString(body)
-	getJSON := rgxGetJSON.FindString(sliceGraph)
-	getJSON = rgxLables.FindString(getJSON)
-	getValues := rgxValues.FindString(getJSON)
-	getStates := rgxCities.FindString(getJSON)
-
-	splitVals := strings.Split(getValues, ",")
-	splitCity := strings.Split(getStates, ",")
+// ReplaceValue ...
+func ReplaceValue(splitCity, splitVals []string) ([]string, []string) {
 	if splitCity[len(splitCity)-1] == "d" {
 		splitCity = splitCity[:len(splitCity)-1]
 	}
@@ -56,15 +53,41 @@ func getCityValue(body string) ListCityValue {
 	if strings.Contains(splitCity[0], "[") {
 		splitCity[0] = strings.Replace(splitCity[0], "[", "", -1)
 	}
+	return splitCity, splitVals
+}
+
+// GetCityValue ...
+func GetCityValue(body string) ([]string, []string) {
+	sliceGraph := rgxGraphCities.FindString(body)
+	getJSON := rgxGetJSON.FindString(sliceGraph)
+	getJSON = rgxLables.FindString(getJSON)
+	getValues := rgxValues.FindString(getJSON)
+	getStates := rgxCities.FindString(getJSON)
+
+	splitVals := strings.Split(getValues, ",")
+	splitCity := strings.Split(getStates, ",")
+	return splitCity, splitVals
+}
+
+// SetCitiesValues ...
+func SetCitiesValues(splitCity, splitVals []string) ListCityValue {
 	var list ListCityValue
 	if len(splitVals) == len(splitCity) {
+		var total uint64 = 0
 		for i := 0; i < len(splitVals); i++ {
 			splitCity[i] = strings.Replace(splitCity[i], "\"", "", -1)
-			list.data = append(list.data, cityValue{
+			value := strings.Trim(splitVals[i], " ")
+			val, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				log.Fatalf("[ERR] Cannot convert string to uint %v :: %v", val, err)
+			}
+			list.data = append(list.data, CityValue{
 				City:  strings.Trim(splitCity[i], " "),
-				Value: strings.Trim(splitVals[i], " "),
+				Value: val,
 			})
+			total = total + val
 		}
+		list.total = total
 	}
 	return list
 }
@@ -83,35 +106,50 @@ func createCSV(list ListCityValue) {
 		}
 	}()
 
-	var vStateValue []*cityValue
+	var vStateValue []*CityValue
 	if _, err := file.Seek(0, 0); err != nil { // Go to the start of the file
 		log.Fatalf("[ERR] Cannot start file %v :: %v", FILENAME, err)
 	}
 
 	for _, v := range list.data {
-		vStateValue = append(vStateValue, &cityValue{City: v.City, Value: v.Value})
+		vStateValue = append(vStateValue, &CityValue{City: v.City, Value: v.Value})
 	}
+	// Append calc about total cases in RS
+	vStateValue = append(vStateValue, &CityValue{City: "Total", Value: list.total})
+
 	err = gocsv.MarshalFile(&vStateValue, file) // Use this to save the CSV back to the file
 	if err != nil {
 		log.Fatalf("[ERR] Cannot save file %v :: %v", FILENAME, err)
 	}
 }
 
-func main() {
-	var client http.Client
+// GetData ...
+func GetData() string {
+	client := http.Client{Timeout: 2 * time.Second}
 	resp, err := client.Get(URL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode == http.StatusOK {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Fatal(err)
 		}
-		bodyString := string(bodyBytes)
-		list := getCityValue(bodyString)
-		createCSV(list)
+		return string(bodyBytes)
 	}
+	return ""
+}
+
+// Run ...
+func Run() {
+	body := GetData()
+	cities, values := GetCityValue(body)
+	cities, values = ReplaceValue(cities, values)
+	list := SetCitiesValues(cities, values)
+	createCSV(list)
+}
+
+func main() {
+	Run()
 }
