@@ -280,7 +280,7 @@ func TestSetCitiesValues(t *testing.T) {
 			splitVals: []string{"143", "9", "8"},
 		},
 		citiesValues: ListCityValue{
-			data: []CityValue{
+			Data: []CityValue{
 				{
 					City:  "Porto Alegre",
 					Value: 143,
@@ -292,7 +292,7 @@ func TestSetCitiesValues(t *testing.T) {
 					Value: 8,
 				},
 			},
-			total: 160,
+			Total: 160,
 		},
 	}
 	t.Run(tt.name, func(t *testing.T) {
