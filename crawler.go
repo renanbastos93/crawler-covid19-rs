@@ -21,14 +21,14 @@ type CityValue struct {
 
 // ListCityValue ...
 type ListCityValue struct {
-	data  []CityValue
-	total uint64
+	Data  []CityValue
+	Total uint64
 }
 
 // Exported ...
 var (
 	URL      = "http://ti.saude.rs.gov.br/covid19/"
-	FileName = "data.csv" // we can set path e.g /var/crawser/br/rs/data.csv
+	FileName = "data.csv" // we can set path e.g /var/crawser/br/rs/Data.csv
 	// REGEX ...
 	rgxGraphCities = regexp.MustCompile(`GraphMunicipio.*\n.*,`)
 	rgxGetJSON     = regexp.MustCompile(`\{.*\}`)
@@ -82,13 +82,13 @@ func SetCitiesValues(splitCity, splitVals []string) ListCityValue {
 			if err != nil {
 				log.Fatalf("[ERR] Cannot convert string to uint %v :: %v", val, err)
 			}
-			list.data = append(list.data, CityValue{
+			list.Data = append(list.Data, CityValue{
 				City:  strings.Trim(splitCity[i], " "),
 				Value: val,
 			})
 			total = total + val
 		}
-		list.total = total
+		list.Total = total
 	}
 	return list
 }
@@ -111,11 +111,11 @@ func createCSV(list ListCityValue) {
 		log.Fatalf("[ERR] Cannot start file %v :: %v", FileName, err)
 	}
 
-	for _, v := range list.data {
+	for _, v := range list.Data {
 		vStateValue = append(vStateValue, &CityValue{City: v.City, Value: v.Value})
 	}
 	// Append calc about total cases in RS
-	vStateValue = append(vStateValue, &CityValue{City: "Total", Value: list.total})
+	vStateValue = append(vStateValue, &CityValue{City: "Total", Value: list.Total})
 
 	err = gocsv.MarshalFile(&vStateValue, file) // Use this to save the CSV back to the file
 	if err != nil {
