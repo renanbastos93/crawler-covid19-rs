@@ -6,14 +6,17 @@ GOLINT ?= $(GOBIN)/golint
 
 all: format lint sec test
 
+run: 
+	@ $(GO) run ./cmd/main.go
+
 sec:
-	$(GOSEC) ./...
+	@ $(GOSEC) ./...
 
 lint:
-	$(GOLINT) ./...
+	@ $(GOLINT) ./...
 
 format:
-	$(GO)fmt -w .	
+	@ $(GO)fmt -w .	
 
 test:
-	$(GO) test -coverprofile "coverage.html" .
+	@ $(GO) test -coverprofile "coverage.html" .

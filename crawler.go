@@ -1,4 +1,4 @@
-package main
+package crawler
 
 import (
 	"io/ioutil"
@@ -27,7 +27,8 @@ type ListCityValue struct {
 
 // Exported ...
 var (
-	URL = "http://ti.saude.rs.gov.br/covid19/"
+	URL      = "http://ti.saude.rs.gov.br/covid19/"
+	FileName = "data.csv" // we can set path e.g /var/crawser/br/rs/data.csv
 	// REGEX ...
 	rgxGraphCities = regexp.MustCompile(`GraphMunicipio.*\n.*,`)
 	rgxGetJSON     = regexp.MustCompile(`\{.*\}`)
@@ -93,22 +94,21 @@ func SetCitiesValues(splitCity, splitVals []string) ListCityValue {
 }
 
 func createCSV(list ListCityValue) {
-	FILENAME := "data.csv"
-	file, err := os.OpenFile(FILENAME, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	file, err := os.OpenFile(FileName, os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
-		log.Fatalf("[ERR] Cannot open file %v :: %v", FILENAME, err)
+		log.Fatalf("[ERR] Cannot open file %v :: %v", FileName, err)
 	}
 
 	defer func() {
 		cerr := file.Close()
 		if cerr != nil {
-			log.Fatalf("[ERR] Cannot close file %v :: %v", FILENAME, cerr)
+			log.Fatalf("[ERR] Cannot close file %v :: %v", FileName, cerr)
 		}
 	}()
 
 	var vStateValue []*CityValue
 	if _, err := file.Seek(0, 0); err != nil { // Go to the start of the file
-		log.Fatalf("[ERR] Cannot start file %v :: %v", FILENAME, err)
+		log.Fatalf("[ERR] Cannot start file %v :: %v", FileName, err)
 	}
 
 	for _, v := range list.data {
@@ -119,7 +119,7 @@ func createCSV(list ListCityValue) {
 
 	err = gocsv.MarshalFile(&vStateValue, file) // Use this to save the CSV back to the file
 	if err != nil {
-		log.Fatalf("[ERR] Cannot save file %v :: %v", FILENAME, err)
+		log.Fatalf("[ERR] Cannot save file %v :: %v", FileName, err)
 	}
 }
 
@@ -148,8 +148,4 @@ func Run() {
 	cities, values = ReplaceValue(cities, values)
 	list := SetCitiesValues(cities, values)
 	createCSV(list)
-}
-
-func main() {
-	Run()
 }
